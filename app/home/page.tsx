@@ -10,8 +10,10 @@ import { useRouter } from "next/navigation"
 
 export default function Component() {
     const router = useRouter()
-    const handleNavigation = (path: string) => {
-        router.push(path)
+    const handleNavigation = (path?: string) => {
+        if (path) {
+          router.push(path)
+        }
       }
   const [activeTab, setActiveTab] = useState("Home")
   
