@@ -116,13 +116,15 @@ export default function Component() {
             { icon: Home, label: "Home" },
             { icon: PieChart, label: "Statistics" },
             { icon: Bell, label: "Notifications" },
-            { icon: Settings, label: "Settings" },
+            { icon: Settings, label: "Settings",path: "/setting" },
+            
           ].map((item, index) => (
             <Button
+
               key={index}
               variant="ghost"
               className={`flex flex-col items-center ${activeTab === item.label ? 'text-blue-500' : 'text-gray-500'}`}
-              onClick={() => setActiveTab(item.label)}
+              onClick={() => handleNavigation(item.path)}
             >
               <item.icon className="h-6 w-6" />
               <span className="text-xs mt-1">{item.label}</span>
@@ -133,6 +135,7 @@ export default function Component() {
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
+              
             </Button>
           ))}
         </nav>

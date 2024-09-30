@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, User, Lock, Bell, Smartphone, LogOut } from "lucide-react"
+import { ArrowLeft, User, Lock, Bell, Smartphone, LogOut, ShieldAlert } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [biometricEnabled, setBiometricEnabled] = useState(false)
   const [darkModeEnabled, setDarkModeEnabled] = useState(false)
+  const [strictModeEnabled, setStrictModeEnabled] = useState(false)
 
   const handleLogout = () => {
     // Implement logout logic here
@@ -91,6 +92,16 @@ export default function SettingsPage() {
                 <Switch
                   checked={biometricEnabled}
                   onCheckedChange={setBiometricEnabled}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Strict Mode</Label>
+                  <p className="text-sm text-gray-500">Prevent withdrawals if pocket balance is insufficient</p>
+                </div>
+                <Switch
+                  checked={strictModeEnabled}
+                  onCheckedChange={setStrictModeEnabled}
                 />
               </div>
               <Button variant="outline" className="w-full">Change Password</Button>
