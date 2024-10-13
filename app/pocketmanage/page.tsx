@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowLeft, Plus, Share2, Lock, Unlock, Target, Calendar } from "lucide-react"
+import { ArrowLeft, Plus, Share2, Lock, Unlock, Target, Calendar, Flame } from "lucide-react"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { Progress } from "@/components/ui/progress"
 
 type Pocket = {
   id: string
@@ -30,13 +31,19 @@ type Pocket = {
   sharedWith: string[]
   target: number | null
   lockOnTarget: boolean
+  dailyGoalEnabled: boolean
+  dailyGoal: number
+  dailyGoalProgress: number
+  streak: number
+  lastDepositDate: string | null
+  
 }
 
-export default function ManagePocketsPage() {
+export default function EnhancedPocketManager() {
   const [pockets, setPockets] = useState<Pocket[]>([
-    { id: "1", name: "Main Account", balance: 250000, isLocked: false, sharedWith: [], target: null, lockOnTarget: false },
-    { id: "2", name: "Savings", balance: 175000, isLocked: false, sharedWith: ["Alice"], target: 100000, lockOnTarget: true },
-    { id: "3", name: "Emergency Fund", balance: 50000, isLocked: true, sharedWith: [], target: 100000, lockOnTarget: false },
+    { id: "1", name: "Main Account", balance: 250000, isLocked: false, sharedWith: [], target: null, lockOnTarget: false, dailyGoalEnabled: false, dailyGoal: 100, dailyGoalProgress: 0, streak: 0, lastDepositDate: null },
+    { id: "2", name: "Savings", balance: 175000, isLocked: false, sharedWith: ["Alice"], target: 100000, lockOnTarget: true, dailyGoalEnabled: true, dailyGoal: 200, dailyGoalProgress: 50, streak: 3, lastDepositDate: "2023-07-14" },
+    { id: "3", name: "Emergency Fund", balance: 50000, isLocked: true, sharedWith: [], target: 100000, lockOnTarget: false, dailyGoalEnabled: true, dailyGoal: 300, dailyGoalProgress: 150, streak: 1, lastDepositDate: "2023-07-14" },
   ])
   const [newPocketName, setNewPocketName] = useState("")
   const [shareEmail, setShareEmail] = useState("")
@@ -44,6 +51,7 @@ export default function ManagePocketsPage() {
   const [lockOnTarget, setLockOnTarget] = useState(false)
   const [dailyPocketId, setDailyPocketId] = useState<string | null>(null)
   const [isDailyPocketMode, setIsDailyPocketMode] = useState(false)
+  const [newDailyGoal, setNewDailyGoal] = useState<string>("")
   const router = useRouter()
   const { toast } = useToast()
 
@@ -57,6 +65,11 @@ export default function ManagePocketsPage() {
         sharedWith: [],
         target: null,
         lockOnTarget: false,
+        dailyGoalEnabled: false,
+        dailyGoal: 0,
+        dailyGoalProgress: 0,
+        streak: 0,
+        lastDepositDate: null
       }
       setPockets([...pockets, newPocket])
       setNewPocketName("")
@@ -143,6 +156,32 @@ export default function ManagePocketsPage() {
     }
   }
 
+  const handleSetDailyGoal = (id: string) => {
+    if (newDailyGoal) {
+      const goal = parseFloat(newDailyGoal)
+      setPockets(pockets.map(pocket => 
+        pocket.id === id ? { ...pocket, dailyGoal: goal, dailyGoalProgress: 0, dailyGoalEnabled: true } : pocket
+      ))
+      setNewDailyGoal("")
+      const pocket = pockets.find(p => p.id === id)
+      toast({
+        title: "Daily Goal Set",
+        description: `Daily goal for "${pocket?.name}" has been set to ${goal.toLocaleString()} THB and enabled.`,
+      })
+    }
+  }
+
+  const handleToggleDailyGoal = (id: string) => {
+    setPockets(pockets.map(pocket => 
+      pocket.id === id ? { ...pocket, dailyGoalEnabled: !pocket.dailyGoalEnabled, streak: 0, dailyGoalProgress: 0 } : pocket
+    ))
+    const pocket = pockets.find(p => p.id === id)
+    toast({
+      title: pocket?.dailyGoalEnabled ? "Daily Goal Disabled" : "Daily Goal Enabled",
+      description: `Daily goal for "${pocket?.name}" has been ${pocket?.dailyGoalEnabled ? 'disabled' : 'enabled'}. Streak has been reset.`,
+    })
+  }
+
   const simulateDeposit = (id: string, amount: number) => {
     if (isDailyPocketMode && id !== dailyPocketId) {
       toast({
@@ -153,14 +192,31 @@ export default function ManagePocketsPage() {
       return
     }
 
+    const today = new Date().toISOString().split('T')[0]
+
     setPockets(pockets.map(pocket => {
       if (pocket.id === id) {
         const newBalance = pocket.balance + amount
         const shouldLock = pocket.lockOnTarget && pocket.target && newBalance >= pocket.target
+        let newDailyGoalProgress = pocket.dailyGoalProgress
+        let newStreak = pocket.streak
+        let newLastDepositDate = pocket.lastDepositDate
+
+        if (pocket.dailyGoalEnabled) {
+          newDailyGoalProgress = Math.min(pocket.dailyGoalProgress + amount, pocket.dailyGoal)
+          const isGoalMet = newDailyGoalProgress >= pocket.dailyGoal
+          const isNewStreak = pocket.lastDepositDate !== today
+          newStreak = isGoalMet ? (isNewStreak ? pocket.streak + 1 : pocket.streak) : 0
+          newLastDepositDate = today
+        }
+
         return { 
           ...pocket, 
           balance: newBalance,
-          isLocked: shouldLock ? true : pocket.isLocked
+          isLocked: shouldLock ? true : pocket.isLocked,
+          dailyGoalProgress: newDailyGoalProgress,
+          streak: newStreak,
+          lastDepositDate: newLastDepositDate
         }
       }
       return pocket
@@ -171,6 +227,13 @@ export default function ManagePocketsPage() {
       toast({
         title: "Pocket Locked",
         description: `Your pocket "${updatedPocket.name}" has been automatically locked as it reached the target.`,
+      })
+    }
+
+    if (updatedPocket?.dailyGoalEnabled && updatedPocket.dailyGoalProgress + amount >= updatedPocket.dailyGoal) {
+      toast({
+        title: "Daily Goal Achieved",
+        description: `Congratulations! You've reached your daily goal for "${updatedPocket.name}". Your streak is now ${updatedPocket.streak + 1} days!`,
       })
     }
   }
@@ -260,6 +323,7 @@ export default function ManagePocketsPage() {
                     <DialogTrigger asChild>
                       <Button size="sm" variant="outline">
                         <Share2 className="mr-2 h-4 w-4" /> Share
+                      
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
@@ -327,6 +391,38 @@ export default function ManagePocketsPage() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Calendar className="mr-2 h-4 w-4" /> Set Daily Goal
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Set Daily Goal</DialogTitle>
+                        <DialogDescription>
+                          Set a daily savings goal for this pocket.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="dailyGoal" className="text-right">
+                            Daily Goal (THB)
+                          </Label>
+                          <Input
+                            id="dailyGoal"
+                            type="number"
+                            value={newDailyGoal}
+                            onChange={(e) => setNewDailyGoal(e.target.value)}
+                            className="col-span-3"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button type="submit" onClick={() => handleSetDailyGoal(pocket.id)}>Set Goal</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                   <Switch
                     checked={pocket.isLocked}
                     onCheckedChange={() => handleToggleLock(pocket.id)}
@@ -346,13 +442,32 @@ export default function ManagePocketsPage() {
                 <p className="text-sm text-gray-600 mt-1">
                   Target: {pocket.target.toLocaleString()} THB
                   {pocket.lockOnTarget && " (Will lock when reached)"}
-                
                 </p>
               )}
               {pocket.sharedWith.length > 0 && (
                 <p className="text-sm text-gray-600 mt-2">
                   Shared with: {pocket.sharedWith.join(", ")}
                 </p>
+              )}
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm font-medium">Daily Goal</p>
+                <Switch
+                  checked={pocket.dailyGoalEnabled}
+                  onCheckedChange={() => handleToggleDailyGoal(pocket.id)}
+                  aria-label={`${pocket.dailyGoalEnabled ? 'Disable' : 'Enable'} daily goal`}
+                />
+              </div>
+              {pocket.dailyGoalEnabled && (
+                <>
+                  <Progress value={(pocket.dailyGoalProgress / pocket.dailyGoal) * 100} className="mt-2" />
+                  <p className="text-xs text-gray-600 mt-1">
+                    {pocket.dailyGoalProgress.toLocaleString()} / {pocket.dailyGoal.toLocaleString()} THB
+                  </p>
+                  <div className="mt-2 flex items-center">
+                    <Flame className="h-4 w-4 text-orange-500 mr-2" />
+                    <p className="text-sm font-medium">Streak: {pocket.streak} days</p>
+                  </div>
+                </>
               )}
               <div className="mt-4">
                 <Button 

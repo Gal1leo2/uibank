@@ -35,19 +35,17 @@ export default function SentPage() {
   const [accountNumber, setAccountNumber] = useState("")
   const [promptpay, setPromptpay] = useState("")
   const [amount, setAmount] = useState("")
-  const [error, setError] = useState("") // State to store validation error
+  const [error, setError] = useState("") 
   const router = useRouter()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
   
-    // Validate account number (must be 12 or 15 digits)
     if (transferType === "account" && accountNumber.length !== 12 && accountNumber.length !== 15) {
       setError("Account number must be either 12 or 15 digits.")
       return
     }
   
-    // Validate sufficient balance
     const pocket = pockets.find(p => p.id === selectedPocket)
     if (pocket && Number(amount) > Number(pocket.balance)) {
       setError("Insufficient funds in the selected pocket.");
@@ -55,11 +53,10 @@ export default function SentPage() {
     }
     
   
-    setError("") // Clear any existing errors
+    setError("") 
     const recipient = transferType === "account" ? `${bank} - ${accountNumber}` : promptpay
     console.log(`Sending ${amount} THB from ${selectedPocket} to ${recipient} via ${transferType}`)
     
-    // Reset form after sending
     setAmount("")
     setAccountNumber("")
     setPromptpay("")
@@ -109,7 +106,7 @@ export default function SentPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {error && <p className="text-red-500">{error}</p>} {/* Display error message */}
+              {error && <p className="text-red-500">{error}</p>} 
               
               <div className="space-y-2">
                 <Label className="text-lg font-medium">Transfer Type</Label>
