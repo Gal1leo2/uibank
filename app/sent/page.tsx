@@ -49,10 +49,11 @@ export default function SentPage() {
   
     // Validate sufficient balance
     const pocket = pockets.find(p => p.id === selectedPocket)
-    if (pocket && amount > pocket.balance) {
-      setError("Insufficient funds in the selected pocket.")
-      return
+    if (pocket && Number(amount) > Number(pocket.balance)) {
+      setError("Insufficient funds in the selected pocket.");
+      return;
     }
+    
   
     setError("") // Clear any existing errors
     const recipient = transferType === "account" ? `${bank} - ${accountNumber}` : promptpay
