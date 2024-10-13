@@ -36,14 +36,14 @@ type Pocket = {
   dailyGoalProgress: number
   streak: number
   lastDepositDate: string | null
-  
+  dailySpendingLimit: number | null
 }
 
 export default function EnhancedPocketManager() {
   const [pockets, setPockets] = useState<Pocket[]>([
-    { id: "1", name: "Main Account", balance: 250000, isLocked: false, sharedWith: [], target: null, lockOnTarget: false, dailyGoalEnabled: false, dailyGoal: 100, dailyGoalProgress: 0, streak: 0, lastDepositDate: null },
-    { id: "2", name: "Savings", balance: 175000, isLocked: false, sharedWith: ["Alice"], target: 100000, lockOnTarget: true, dailyGoalEnabled: true, dailyGoal: 200, dailyGoalProgress: 50, streak: 3, lastDepositDate: "2023-07-14" },
-    { id: "3", name: "Emergency Fund", balance: 50000, isLocked: true, sharedWith: [], target: 100000, lockOnTarget: false, dailyGoalEnabled: true, dailyGoal: 300, dailyGoalProgress: 150, streak: 1, lastDepositDate: "2023-07-14" },
+    { id: "1", name: "Main Account", balance: 250000, isLocked: false, sharedWith: [], target: null, lockOnTarget: false, dailyGoalEnabled: false, dailyGoal: 100, dailyGoalProgress: 0, streak: 0, lastDepositDate: null, dailySpendingLimit:null },
+    { id: "2", name: "Savings", balance: 175000, isLocked: false, sharedWith: ["Alice"], target: 100000, lockOnTarget: true, dailyGoalEnabled: true, dailyGoal: 200, dailyGoalProgress: 50, streak: 3, lastDepositDate: "2023-07-14",dailySpendingLimit:null  },
+    { id: "3", name: "Emergency Fund", balance: 50000, isLocked: true, sharedWith: [], target: 100000, lockOnTarget: false, dailyGoalEnabled: true, dailyGoal: 300, dailyGoalProgress: 150, streak: 1, lastDepositDate: "2023-07-14",dailySpendingLimit:null  },
   ])
   const [newPocketName, setNewPocketName] = useState("")
   const [shareEmail, setShareEmail] = useState("")
@@ -52,6 +52,7 @@ export default function EnhancedPocketManager() {
   const [dailyPocketId, setDailyPocketId] = useState<string | null>(null)
   const [isDailyPocketMode, setIsDailyPocketMode] = useState(false)
   const [newDailyGoal, setNewDailyGoal] = useState<string>("")
+  const [dailySpendingLimit, setDailySpendingLimit] = useState<string>("")
   const router = useRouter()
   const { toast } = useToast()
 
@@ -69,7 +70,8 @@ export default function EnhancedPocketManager() {
         dailyGoal: 0,
         dailyGoalProgress: 0,
         streak: 0,
-        lastDepositDate: null
+        lastDepositDate: null,
+        dailySpendingLimit: null
       }
       setPockets([...pockets, newPocket])
       setNewPocketName("")
@@ -131,13 +133,26 @@ export default function EnhancedPocketManager() {
   }
 
   const handleSetDailyPocket = (id: string) => {
-    setDailyPocketId(id)
-    setIsDailyPocketMode(true)
-    const pocket = pockets.find(p => p.id === id)
-    toast({
-      title: "Daily Pocket Set",
-      description: `"${pocket?.name}" has been set as your daily pocket. You can only use this pocket today.`,
-    })
+    if (dailySpendingLimit) {
+      const limit = parseFloat(dailySpendingLimit)
+      setPockets(pockets.map(pocket => 
+        pocket.id === id ? { ...pocket, dailySpendingLimit: limit } : pocket
+      ))
+      setDailyPocketId(id)
+      setIsDailyPocketMode(true)
+      const pocket = pockets.find(p => p.id === id)
+      toast({
+        title: "Daily Pocket Set",
+        description: `"${pocket?.name}" has been set as your daily pocket with a spending limit of ${limit.toLocaleString()} THB.`,
+      })
+      setDailySpendingLimit("")
+    } else {
+      toast({
+        title: "Daily Spending Limit Required",
+        description: "Please set a daily spending limit before selecting a daily pocket.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleToggleDailyPocketMode = () => {
@@ -149,6 +164,7 @@ export default function EnhancedPocketManager() {
       })
     } else {
       setDailyPocketId(null)
+      setPockets(pockets.map(pocket => ({ ...pocket, dailySpendingLimit: null })))
       toast({
         title: "Daily Pocket Mode Deactivated",
         description: "You can now use all your pockets.",
@@ -187,6 +203,16 @@ export default function EnhancedPocketManager() {
       toast({
         title: "Transaction Blocked",
         description: "You can only use your daily pocket in Daily Pocket Mode.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const pocket = pockets.find(p => p.id === id)
+    if (isDailyPocketMode && pocket?.dailySpendingLimit && amount > pocket.dailySpendingLimit) {
+      toast({
+        title: "Transaction Blocked",
+        description: `This transaction exceeds your daily spending limit of ${pocket.dailySpendingLimit.toLocaleString()} THB.`,
         variant: "destructive",
       })
       return
@@ -245,7 +271,7 @@ export default function EnhancedPocketManager() {
           <ArrowLeft className="h-6 w-6" />
         </Button>
         <h1 className="text-2xl font-bold text-center flex-1 text-purple-600">Manage Pockets</h1>
-        <div className="w-6" /> {/* Placeholder for alignment */}
+        <div className="w-6" />
       </header>
 
       <main className="flex-1 p-6 space-y-6 max-w-4xl mx-auto w-full">
@@ -262,11 +288,31 @@ export default function EnhancedPocketManager() {
           </CardHeader>
           {isDailyPocketMode && (
             <CardContent>
+              <div className="mb-4">
+                <Label htmlFor="dailySpendingLimit" className="block text-sm font-medium text-gray-700 mb-1">
+                  Set Daily Spending Limit (THB)
+                </Label>
+                <Input
+                  id="dailySpendingLimit"
+                  type="number"
+                  value={dailySpendingLimit}
+                  onChange={(e) => setDailySpendingLimit(e.target.value)}
+                  placeholder="Enter daily spending limit"
+                  className="w-full"
+                />
+              </div>
               <RadioGroup value={dailyPocketId || ""} onValueChange={handleSetDailyPocket}>
                 {pockets.map((pocket) => (
-                  <div key={pocket.id} className="flex items-center space-x-2">
-                    <RadioGroupItem value={pocket.id} id={`radio-${pocket.id}`} />
-                    <Label htmlFor={`radio-${pocket.id}`}>{pocket.name}</Label>
+                  <div key={pocket.id} className="flex items-center justify-between space-x-2 py-2">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value={pocket.id} id={`radio-${pocket.id}`} />
+                      <Label htmlFor={`radio-${pocket.id}`}>{pocket.name}</Label>
+                    </div>
+                    {pocket.dailySpendingLimit && (
+                      <span className="text-sm text-gray-500">
+                        Limit: {pocket.dailySpendingLimit.toLocaleString()} THB
+                      </span>
+                    )}
                   </div>
                 ))}
               </RadioGroup>
@@ -276,6 +322,7 @@ export default function EnhancedPocketManager() {
 
         <Card className="border-2 border-purple-200 shadow-lg">
           <CardHeader>
+            
             <CardTitle className="text-xl text-purple-600 flex justify-between items-center">
               Create New Pocket
               <Dialog>
@@ -323,7 +370,6 @@ export default function EnhancedPocketManager() {
                     <DialogTrigger asChild>
                       <Button size="sm" variant="outline">
                         <Share2 className="mr-2 h-4 w-4" /> Share
-                      
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
@@ -447,6 +493,11 @@ export default function EnhancedPocketManager() {
               {pocket.sharedWith.length > 0 && (
                 <p className="text-sm text-gray-600 mt-2">
                   Shared with: {pocket.sharedWith.join(", ")}
+                </p>
+              )}
+              {isDailyPocketMode && pocket.id === dailyPocketId && (
+                <p className="text-sm font-medium text-green-600 mt-2">
+                  Daily Spending Limit: {pocket.dailySpendingLimit?.toLocaleString()} THB
                 </p>
               )}
               <div className="mt-4 flex items-center justify-between">
