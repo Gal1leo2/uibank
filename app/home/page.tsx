@@ -1,22 +1,26 @@
 "use client"
+
 import { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MenuIcon, CreditCard, Send, Wallet, ArrowDownCircle, ArrowUpCircle, Home, PieChart, Bell, Settings } from "lucide-react"
+import { MenuIcon, CreditCard, Send, Wallet, ArrowDownCircle, ArrowUpCircle, Home, PieChart, Bell, Settings, Briefcase } from "lucide-react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 
-
 export default function Component() {
-    const router = useRouter()
-    const handleNavigation = (path?: string) => {
-        if (path) {
-          router.push(path)
-        }
-      }
+  const router = useRouter()
+  const handleNavigation = (path?: string) => {
+    if (path) {
+      router.push(path)
+    }
+  }
   const [activeTab, setActiveTab] = useState("Home")
-  
+  const [showMoney, setShowMoney] = useState(false) 
+
+  const toggleMoney = () => {
+    setShowMoney((prev) => !prev)
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-blue-100 to-white">
@@ -46,37 +50,45 @@ export default function Component() {
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium">Total Balance</CardTitle>
+              <Button onClick={toggleMoney} className="bg-white text-blue-600 hover:bg-gray-200">
+                {showMoney ? "Hide Money" : "Show Money"}
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold">332,332 THB</div>
-              <p className="text-blue-100 mt-1">+2.5% from last month</p>
+              <div className="text-4xl font-bold">
+                {showMoney ? "332,332 THB" : "•••••••"}
+              </div>
+              {showMoney && (
+                <p className="text-blue-100 mt-1">+2.5% from last month</p>
+              )}
             </CardContent>
           </Card>
         </motion.div>
 
-        <div className="grid grid-cols-2 gap-4">
-      {[
-        { icon: Send, label: "Send", color: "bg-purple-500", path: "/sent" },
-        { icon: CreditCard, label: "Bill Payment", color: "bg-green-500", path: "pay" },
-        { icon: Wallet, label: "Top Up", color: "bg-yellow-500", path: "/topup" },
-        { icon: ArrowDownCircle, label: "Withdraw", color: "bg-red-500", path: "/withdraw" },
-      ].map((item, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: index * 0.1 }}
-        >
-          <Button
-            onClick={() => handleNavigation(item.path)}
-            className={`flex flex-col items-center justify-center h-24 w-full ${item.color} hover:opacity-90 transition-opacity`}
-          >
-            <item.icon className="h-8 w-8 mb-2 text-white" />
-            <span className="text-white font-medium">{item.label}</span>
-          </Button>
-        </motion.div>
-      ))}
-    </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {[
+            { icon: Send, label: "Send", color: "bg-purple-500", path: "/sent" },
+            { icon: CreditCard, label: "Bill Payment", color: "bg-green-500", path: "/pay" },
+            { icon: Wallet, label: "Top Up", color: "bg-yellow-500", path: "/topup" },
+            { icon: ArrowDownCircle, label: "Withdraw", color: "bg-red-500", path: "/withdraw" },
+            { icon: Briefcase, label: "Manage Pockets", color: "bg-blue-500", path: "/pocketmanage" },
+          ].map((item, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+            >
+              <Button
+                onClick={() => handleNavigation(item.path)}
+                className={`flex flex-col items-center justify-center h-24 w-full ${item.color} hover:opacity-90 transition-opacity`}
+              >
+                <item.icon className="h-8 w-8 mb-2 text-white" />
+                <span className="text-white font-medium text-sm text-center">{item.label}</span>
+              </Button>
+            </motion.div>
+          ))}
+        </div>
 
         <Card>
           <CardHeader>
@@ -118,15 +130,16 @@ export default function Component() {
             { icon: Home, label: "Home" },
             { icon: PieChart, label: "Statistics" },
             { icon: Bell, label: "Notifications" },
-            { icon: Settings, label: "Settings",path: "/setting" },
-            
+            { icon: Settings, label: "Settings", path: "/setting" },
           ].map((item, index) => (
             <Button
-
               key={index}
               variant="ghost"
               className={`flex flex-col items-center ${activeTab === item.label ? 'text-blue-500' : 'text-gray-500'}`}
-              onClick={() => handleNavigation(item.path)}
+              onClick={() => {
+                setActiveTab(item.label)
+                handleNavigation(item.path)
+              }}
             >
               <item.icon className="h-6 w-6" />
               <span className="text-xs mt-1">{item.label}</span>
@@ -137,7 +150,6 @@ export default function Component() {
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
-              
             </Button>
           ))}
         </nav>

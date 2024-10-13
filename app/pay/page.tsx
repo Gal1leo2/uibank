@@ -32,15 +32,43 @@ export default function BillPaymentPage() {
   const [newPocketName, setNewPocketName] = useState("")
   const [showAddPocket, setShowAddPocket] = useState(false)
   const router = useRouter()
+  const [errorMessage, setErrorMessage] = useState("")
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log(`Paying ${amount} THB for ${selectedBill} bill number ${billNumber} from ${selectedPocket} pocket`)
+  
+    const selectedPocketData = pockets.find(pocket => pocket.id === selectedPocket)
+  
+    if (!selectedPocketData) {
+      setErrorMessage("Selected pocket not found.")
+      return
+    }
+  
+    // Check if the entered amount exceeds the balance in the selected pocket
+    if (parseFloat(amount) > selectedPocketData.balance) {
+      setErrorMessage(`Insufficient funds! Your ${selectedPocketData.name} has only ${selectedPocketData.balance.toLocaleString()} THB.`)
+      return
+    }
+  
+    // Reset error message if sufficient funds
+    setErrorMessage("")
+  
+    // Process the payment and update the pocket balance
+    const updatedPockets = pockets.map(pocket => {
+      if (pocket.id === selectedPocket) {
+        return { ...pocket, balance: pocket.balance - parseFloat(amount) }
+      }
+      return pocket
+    })
+    setPockets(updatedPockets)
+  
     setAmount("")
     setBillNumber("")
     setSelectedBill("")
     alert("Bill payment successful!")
   }
+  
 
   const handleAddPocket = () => {
     setShowAddPocket(true)
@@ -199,7 +227,7 @@ export default function BillPaymentPage() {
                   ))}
                 </div>
               </div>
-
+              {errorMessage && <p className="text-red-500">{errorMessage}</p>}
               <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg transition-all duration-200">
                 <PlusCircle className="mr-2 h-5 w-5" /> Pay Bill
               </Button>
