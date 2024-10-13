@@ -7,7 +7,7 @@ export default function IndexPage() {
   const router = useRouter()
 
   useEffect(() => {
-    router.push('/home')
+    router.push('/register')
   }, [router])
 
   return null
